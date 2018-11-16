@@ -46,6 +46,8 @@ var StandardMailHandler = function (parent, serviceFactory) {
     cardRepository[CardNames.title].setValidation(cardValidator);
     cardRepository[CardNames.sheet].setValidation(cardValidator);
     cardRepository[CardNames.row].setValidation(cardValidator);
+    cardRepository[CardNames.subject].setValidation(cardValidator);
+    cardRepository[CardNames.body].setValidation(cardValidator);
     cardRepository[CardNames.conditional].setValidation(function () {
       if (cardRepository[CardNames.conditional].isEnabled() && cardRepository[CardNames.conditional].getValue() == '') {
         return false;

@@ -39,6 +39,7 @@ var TextareaCard = function(appendTo, options) {
   // Private variables
   var self = this;
   var innerBase = $(textareaHTML);
+  var validate;
   var textarea = innerBase.find('textarea');
   var acConfig;
 
@@ -190,6 +191,23 @@ var TextareaCard = function(appendTo, options) {
   this.getTextElement = function() {
     return textarea;
   };
+  
+  this.setValidation = function(callback) {
+    validate = callback;
+  };
+
+  this.isValid = function() {
+    var body = tinymce.get(textarea.attr('id')).getContent();
+    if (!body || 0 === body.length) {
+      return false;
+    }
+    if (validate !== undefined && !validate(self)) {
+      return false;
+    }
+
+    return true;
+  };
+
 
   this.init_(appendTo, options);
 };
