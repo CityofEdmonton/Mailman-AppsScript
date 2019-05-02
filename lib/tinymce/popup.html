@@ -1,0 +1,98 @@
+<html>
+  <head>
+    <script src="https://cdn.polyfill.io/v2/polyfill.min.js"></script>
+    <script src="https://gdev.edmonton.ca/mailman/tinymce/tinymce.js">
+    </script>
+    <script>
+      var eventSource, eventOrigin;
+      var requestPreviewPromise = {
+        resolve: null, reject: null
+      };
+      var requestSuggestionsPromise = {
+        resolve: null, reject: null
+      }
+      function onInit() {
+        tinymce.init({
+              selector: 'textarea',
+              toolbar: 'formatselect | bold italic strikethrough forecolor backcolor | link | alignleft aligncenter alignright alignjustify | numlist bullist outdent indent | removeformat | code preview | help',
+              plugins: 'advlist anchor autolink charmap code colorpicker fullscreen help hr image insertdatetime link lists nonbreaking paste preview placeholder print searchreplace suggestions table textcolor toc visualblocks visualchars wordcount',
+              skin_url: 'https://cloud.tinymce.com/dev/skins/lightgray',
+              branding: false,
+              contextmenu:  "link image inserttable | cell row column deletetable",
+              setup: function(editor) {
+                editor.on('init', function(e) {
+                  editor.execCommand('mceFullScreen');
+                });
+                editor.on('Previewing', function (e) {
+                  if (e.state && e.state.content) {
+                    var value = requestPreview(e.state);
+                    if (value)
+                      e.state.content = value;
+                  }
+                });
+                editor.on('getSuggestions', function (e) {
+                  var value = requestSuggestions(e.state);
+                  if (value)
+                    e.state.suggestions = value;
+                });
+              }, 
+              init_instance_callback: function() {
+                if (window.opener) {
+                  window.opener.postMessage({ message: "Loaded"}, "*");
+                }
+              }
+            });
+        
+      }
+      function receiveMessage(e) {
+        // ensure valid origin - the localhost should be removed for production
+        if (!(/.googleusercontent.com$/i.test(e.origin) ||
+             (e.origin === "http://localhost:8000"))) {
+          return;
+        }
+        
+        var data = e.data;
+        if (data) {
+          if (data.message === "Content") {
+            tinymce.get('editor').setContent(data.content);
+            eventOrigin = e.origin;
+            eventSource = e.source;
+          } 
+          else if (data.message === "PreviewResponse" && requestPreviewPromise.resolve) {
+            requestPreviewPromise.resolve(data.state.content);
+          } else if (data.message === "SuggestionsResponse" && requestSuggestionsPromise.resolve) {
+            requestSuggestionsPromise.resolve(data.state.suggestions);
+          }
+        } 
+      }
+      function updateContent() {
+        if (eventSource) {
+          eventSource.postMessage({ message: "UpdateContent", content: tinymce.get('editor').getContent() }, eventOrigin);
+        }
+      }
+      function requestPreview(previewState) {
+        if (eventSource) {
+          return new Promise(function(resolve, reject) {
+            requestPreviewPromise.resolve = resolve;
+            requestPreviewPromise.reject = reject;
+            eventSource.postMessage({ message: "PreviewRequest", state: previewState }, eventOrigin);
+          });
+        }
+      }
+      function requestSuggestions(suggestionState) {
+        if (eventSource) {
+          return new Promise(function(resolve, reject) {
+            requestSuggestionsPromise.resolve = resolve;
+            requestSuggestionsPromise.reject = reject;
+            eventSource.postMessage({ message: "SuggestionsRequest", state: suggestionState }, eventOrigin);
+          });
+        }
+      }
+      window.addEventListener("message", receiveMessage, false);
+      window.addEventListener("beforeunload", updateContent);      
+    </script>
+  </head>
+  <body onload="onInit()">
+    <textarea id="editor"></textarea>
+  </body>
+</html>
