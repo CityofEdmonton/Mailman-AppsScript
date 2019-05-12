@@ -89,7 +89,7 @@ var TextareaCard = function(appendTo, options) {
     });
    };
 
-    tinymce.baseURL = 'https://gdev.edmonton.ca/mailman/tinymce/';
+    tinymce.baseURL = 'https://cityofedmonton.github.io/Mailman-AppsScript/lib/tinymce/tinymce/';
      
     tinymce.init({
       selector: 'textarea',
